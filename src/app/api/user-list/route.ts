@@ -4,12 +4,19 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const page = searchParams.get('page') ?? '1';
-  const pageSize = searchParams.get('pageSize') ?? '10';
-  const sortBy = searchParams.get('sortBy') ?? 'id';
-  const sortOrder = searchParams.get('sortOrder') ?? 'asc';
+  const page = Number(searchParams.get('page')) || 1;
+  const pageSize = Number(searchParams.get('pageSize')) || 10;
+  const search = searchParams.get('search')?.toLowerCase() || '';
+  const sortBy = searchParams.get('sortBy') || 'id';
+  const sortOrder = searchParams.get('sortOrder') || 'asc';
 
-  const sorted = [...data].sort((a, b) => {
+  const filtered = data.filter(
+    (item) =>
+      item.name.toLowerCase().includes(search) ||
+      item.language.toLowerCase().includes(search)
+  );
+
+  filtered.sort((a, b) => {
     const aVal = a[sortBy as keyof typeof a];
     const bVal = b[sortBy as keyof typeof b];
     if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
@@ -17,11 +24,11 @@ export async function GET(req: NextRequest) {
     return 0;
   });
 
-  const start = (parseInt(page) - 1) * parseInt(pageSize);
-  const paginated = sorted.slice(start, start + parseInt(pageSize));
+  const start = (page - 1) * pageSize;
+  const paginated = filtered.slice(start, start + pageSize);
 
   return NextResponse.json({
     data: paginated,
-    total: data.length,
+    total: filtered.length
   });
 }
